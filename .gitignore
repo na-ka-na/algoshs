@@ -9,3 +9,9 @@ cabal-dev
 .dist-buildwrapper
 .project
 .settings
+src/Algos2
+src/Algos2.aux
+src/Algos2.hp
+src/Algos2.pdf
+src/Algos2.prof
+src/Algos2.ps
