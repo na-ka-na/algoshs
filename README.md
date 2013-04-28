@@ -1,0 +1,4 @@
+algoshs
+=======
+
+memoir algos finder
