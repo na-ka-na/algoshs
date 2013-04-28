@@ -1,11 +1,8 @@
 module PortCapability2
 (
   PortCapability(..)
-, PC(..)
-, PC_FORM(..)
 , portCap
 , covers
-, pcForm
 ) where
 
 import Control.Exception (assert)
