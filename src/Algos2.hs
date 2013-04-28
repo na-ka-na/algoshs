@@ -3,7 +3,7 @@ module Algos2 where
 import Data.Hashable (Hashable, hash, hashWithSalt)
 import Data.List (sort, elemIndex)
 import Data.Maybe (fromJust, isJust, maybeToList)
-import PortCapability
+import PortCapability2
 import System.Environment
 
 {-# ANN module "HLint: ignore Use camelCase" #-}

@@ -14,7 +14,7 @@ import Data.Hashable (Hashable, hash, hashWithSalt)
 import qualified Data.HashSet as HS (HashSet, fromList, toList, unions, insert, empty, null, difference)
 import Data.List ()
 import qualified PortCapParser as PP
-import Debug.Trace (trace)
+--import Debug.Trace (trace)
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 -------------------------------------------------------------------------
@@ -66,8 +66,7 @@ instance Ord PortCapability where
         = compare (pcForm pc1, orig1) (pcForm pc2, orig2)
 
 portCap :: String -> PortCapability
-portCap orig = trace orig $ 
-               let pps = PP.parsePortCap orig
+portCap orig = let pps = PP.parsePortCap orig
                    pcs = map (\(PP.PC r rw w ru c a) -> newpc r rw w ru c a)
                          (assert (not.null $ pps) pps)
                    type1s = HS.unions $ map toType1s pcs
