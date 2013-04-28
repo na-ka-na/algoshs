@@ -1,6 +1,7 @@
 dist
 cabal-dev
 *.o
+*.o.prof
 *.hi
 *.chi
 *.chs.h
