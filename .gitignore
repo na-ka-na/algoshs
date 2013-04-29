@@ -9,6 +9,7 @@ cabal-dev
 .dist-buildwrapper
 .project
 .settings
+*.swp
 src/Algos2
 src/Algos2.aux
 src/Algos2.hp
