@@ -95,8 +95,10 @@ portCap = memoize1
                     in PortCapability orig hsh pcs simple type1s subports)
 
 covers :: PortCapability -> PortCapability -> Bool
-(PortCapability _ _ _ _ _ subports) `covers` (PortCapability _ _ _ _ _ subports') =
-    HS.null $ HS.difference subports' subports
+(PortCapability _ _ [PC r 0 w ru c a] True _ _) `covers` (PortCapability _ _ [PC r' 0 w' ru' c' a'] True _ _)
+    = (r >= r') && (w >= w') && (ru >= ru') && (c >= c') && (a >= a')
+(PortCapability _ _ _ _ _ subports) `covers` (PortCapability _ _ _ _ _ subports')
+    = HS.null $ HS.difference subports' subports
 
 -------------------------------------------------------------------------
 
