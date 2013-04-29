@@ -8,9 +8,9 @@ module PortCapability4
 import Control.Exception (assert)
 import Data.Hashable (Hashable, hash, hashWithSalt)
 import qualified Data.HashSet as HS (HashSet, fromList, toList, unions, insert, empty, null, difference)
-import qualified Data.HashMap.Lazy as HM (empty, insert, lookup)
+import qualified Data.HashMap.Lazy as HM (HashMap, empty, insert, lookup)
 import Data.List ()
-import Data.IORef (newIORef, readIORef, writeIORef)
+import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 --import Debug.Trace (trace)
 import qualified PortCapParser as PP
 import System.IO.Unsafe (unsafePerformIO)
@@ -21,15 +21,20 @@ import System.IO.Unsafe (unsafePerformIO)
 memoize1 :: (Eq k, Hashable k, Show k, Show v) => (k -> v) -> k -> v
 memoize1 f = unsafePerformIO $ do             
                  cacheRef <- newIORef HM.empty
-                 return (\k -> unsafePerformIO $ do
-                     cache <- readIORef cacheRef
-                     case HM.lookup k cache of
-                         Just v -> return v
-                         Nothing -> let v = f k
-                                        cache' = HM.insert k v cache
-                                    in do
-                                        writeIORef cacheRef cache'
-                                        return v)
+                 return $ newf cacheRef f
+
+-- SCC (set cost center)
+newf :: (Eq k, Hashable k) => IORef(HM.HashMap k v) -> (k -> v) -> k -> v
+newf cacheRef f k
+    = unsafePerformIO $ do
+          cache <- readIORef cacheRef
+          case HM.lookup k cache of
+              Just v -> return v
+              Nothing -> let v = f k
+                             cache' = HM.insert k v cache
+                         in do
+                             writeIORef cacheRef cache'
+                             return v
 
 -------------------------------------------------------------------------
 
