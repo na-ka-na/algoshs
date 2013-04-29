@@ -1,10 +1,13 @@
+Clean temp files
+rm -f *.hi *.o *.prof *.aux *.hp *.pdf *.ps
+
 Build normal
-ghc -O2 --make -main-is Algos2 Algos2.hs
+ghc -O2 --make -main-is Algos3 Algos3.hs
 
 Build profile
-ghc -O2 --make -osuf o.prof -rtsopts -prof -caf-all -auto-all -main-is Algos2 Algos2.hs 
+ghc -O2 --make -osuf o.prof -rtsopts -prof -caf-all -auto-all -main-is Algos3 Algos3.hs 
 
 Running with profile mode
-./Algos2 5 +RTS -sstderr 
-./Algos2 3 +RTS -hc -p
-hp2ps -c Algos2.hp && ps2pdf Algos2.ps && gnome-open Algos2.pdf  
+./Algos3 5 +RTS -sstderr 
+./Algos3 3 +RTS -hc -p
+hp2ps -c Algos3.hp && ps2pdf Algos3.ps && gnome-open Algos3.pdf  
