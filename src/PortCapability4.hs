@@ -61,23 +61,25 @@ toType1s pc@(PC r rw w ru c a) =
 
 -------------------------------------------------------------------------
 
--- orig hash pcs type1s subports
-data PortCapability = PortCapability String Int [PC] (HS.HashSet PC) (HS.HashSet PortCapability)
+-- orig hsh pcs simple type1s subports
+data PortCapability = PortCapability String Int [PC] Bool (HS.HashSet PC) (HS.HashSet PortCapability)
 
 instance Eq PortCapability where
-    PortCapability _ hsh _ type1s _ == PortCapability _ hsh' _ type1s' _ =
-        (hsh == hsh') && type1s == type1s'
+    PortCapability orig _ _ simple type1s _ == PortCapability orig' _ _ simple' type1s' _
+        | simple && simple' = orig == orig'
+        | otherwise = type1s == type1s'
+
 instance Hashable PortCapability where
-    hashWithSalt salt (PortCapability _ hsh _ _ _) = salt * hsh
+    hashWithSalt salt (PortCapability _ hsh _ _ _ _) = salt * hsh
 
 _hashType1s :: HS.HashSet PC -> Int
 _hashType1s = foldr (hashWithSalt . hash) 17 . HS.toList
 
 instance Show PortCapability where
-    show (PortCapability orig _ _ _ _) = orig
+    show (PortCapability orig _ _ _ _ _) = orig
 
 instance Ord PortCapability where
-    compare pc1@(PortCapability orig1 _ _ _ _) pc2@(PortCapability orig2 _ _ _ _)
+    compare pc1@(PortCapability orig1 _ _ _ _ _) pc2@(PortCapability orig2 _ _ _ _ _)
         = compare (pcForm pc1, orig1) (pcForm pc2, orig2)
 
 portCap :: String -> PortCapability
@@ -85,14 +87,15 @@ portCap = memoize1
           (\orig -> let pps = PP.parsePortCap orig
                         pcs = map (\(PP.PC r rw w ru c a) -> newpc r rw w ru c a)
                               (assert (not.null $ pps) pps)
+                        simple = (length pcs == 1) && (\(PC _ rw _ _ _ _:_) -> rw == 0) pcs
                         type1s = HS.unions $ map toType1s pcs
                         hsh = _hashType1s type1s
                         subports = foldr (\pc subs -> HS.insert (portCap $ toPortCapString pc) subs)
                                      HS.empty $ HS.toList type1s
-                    in PortCapability orig hsh pcs type1s subports)
+                    in PortCapability orig hsh pcs simple type1s subports)
 
 covers :: PortCapability -> PortCapability -> Bool
-(PortCapability _ _ _ _ subports) `covers` (PortCapability _ _ _ _ subports') =
+(PortCapability _ _ _ _ _ subports) `covers` (PortCapability _ _ _ _ _ subports') =
     HS.null $ HS.difference subports' subports
 
 -------------------------------------------------------------------------
@@ -101,15 +104,8 @@ data PC_FORM = PC_NOOP | PC_nR | PC_nW | PC_nRW | PC_nRmW | PC_nRmRWpW | PC_nRor
              | PC_nC | PC_nA | PC_nCormA | PC_OTHER
              deriving (Eq, Ord, Show, Read, Enum)
 
---numReadPorts      (PortCapability _ pcs _ _) = foldr1 max $ map (\(PC r _ _ _ _ _) -> r) pcs
---numReadWritePorts (PortCapability _ pcs _ _) = foldr1 max $ map (\(PC _ rw _ _ _ _) -> rw) pcs
---numWritePorts     (PortCapability _ pcs _ _) = foldr1 max $ map (\(PC _ _ w _ _ _) -> w) pcs
---numUpdatePorts    (PortCapability _ pcs _ _) = foldr1 max $ map (\(PC _ _ _ ru _ _) -> ru) pcs
---numCountPorts     (PortCapability _ pcs _ _) = foldr1 max $ map (\(PC _ _ _ _ c _) -> c) pcs
---numPushPorts      (PortCapability _ pcs _ _) = foldr1 max $ map (\(PC _ _ _ _ _ a) -> a) pcs
-
 pcForm :: PortCapability -> PC_FORM
-pcForm (PortCapability _ _ [PC r rw w ru c a] _ _) -- length pcs == 1
+pcForm (PortCapability _ _ [PC r rw w ru c a] _ _ _) -- length pcs == 1
     | lines' == 0        = PC_NOOP
     | lines' == r        = PC_nR
     | lines' == w        = PC_nW
@@ -120,7 +116,7 @@ pcForm (PortCapability _ _ [PC r rw w ru c a] _ _) -- length pcs == 1
     | lines' == a        = PC_nA
     where lines' = r + rw + w + ru + c + a
 
-pcForm (PortCapability _ _ [PC r rw w ru c a, PC r' rw' w' ru' c' a'] _ _) -- length pcs == 2
+pcForm (PortCapability _ _ [PC r rw w ru c a, PC r' rw' w' ru' c' a'] _ _ _) -- length pcs == 2
     | (lines' == r) && (lines'' == w') = PC_nRormW
     | (lines' == c) && (lines'' == a') = PC_nCormA
     where lines'  = r + rw + w + ru + c + a
