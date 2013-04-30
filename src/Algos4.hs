@@ -1,6 +1,7 @@
 module Algos4 where
 
 import Data.Hashable (Hashable, hash, hashWithSalt)
+import qualified Data.HashMap.Lazy as HM (empty, lookupDefault, insert, elems)
 import Data.List (sort)
 import Data.Maybe (fromJust, isJust, maybeToList)
 import PortCapability4
@@ -95,6 +96,7 @@ _MAX_MT_LEVEL :: Int; _MAX_MT_LEVEL = 4
 _MAX_RL_LEVEL :: Int; _MAX_RL_LEVEL = 4
 _MAX_XR_LEVEL :: Int; _MAX_XR_LEVEL = 3
 
+-- name pc lvl algs
 data Algo = Algo String PortCapability Int [Algo] deriving (Eq, Ord)
 
 instance Hashable Algo where
@@ -142,13 +144,14 @@ _ALG_fns2 = [_MT_Alg, _REP_Alg]
 _ALG_fns1 :: [Algo -> [Algo]]
 _ALG_fns1 = []
 
+-- assuming both algos have same name and portcap
 _alg_covers :: Algo -> Algo -> Bool
-(Algo name1 pc1 lvl1 as1) `_alg_covers` (Algo name2 pc2 lvl2 as2)
-    | (name1 == name2) && (pc1 == pc2) && (lvl1 <= lvl2)
-        = let [pcs1, pcs2] = map (map (\(Algo _ pc _ _) -> pc)) [as1, as2]
-          in and $ zipWith covers pcs2 pcs1
+(Algo _ _ lvl1 as1) `_alg_covers` (Algo _ _ lvl2 as2)
+    | lvl1 <= lvl2
+        = and $ zipWith covers (map (\(Algo _ pc _ _) -> pc) as2) (map (\(Algo _ pc _ _) -> pc) as1)
     | otherwise = False
 
+-- only algos from one group are passed in to this function
 _filter_redundant_algs :: [Algo] -> [Algo]
 _filter_redundant_algs = fra []
     where fra good_algs [] = good_algs
@@ -156,11 +159,19 @@ _filter_redundant_algs = fra []
               | any (`_alg_covers` alg) $ good_algs ++ rem_algs = fra good_algs rem_algs
               | otherwise = fra (alg:good_algs) rem_algs
 
+_group_algs :: [Algo] -> [[Algo]]
+_group_algs = HM.elems . foldr
+                  (\alg@(Algo name pc _ _) acc ->
+                      HM.insert (name, pc) (alg:HM.lookupDefault [] (name, pc) acc) acc)
+                  HM.empty
+
 _iter_alg :: [Algo] -> Int -> [Algo]
 _iter_alg algs n = foldr _iter algs [1..n]
     where _iter _ acc = let as2 = [fn a1 a2 | a1 <- acc, a2 <- acc, fn <- _ALG_fns2]
                             as1 = [fn a | a <- acc, fn <- _ALG_fns1]
-                        in _filter_redundant_algs $ concat [acc, concat as2, concat as1]
+                        in concatMap _filter_redundant_algs
+                            $ _group_algs
+                            $ concat [acc, concat as2, concat as1]
 
 _iter_alg2 :: [Algo] -> Int -> [Algo]
 _iter_alg2 algs n = filter (\(Algo name _ _ _) -> name `notElem` [_BASE_name, _REP_name])
