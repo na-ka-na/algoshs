@@ -28,6 +28,20 @@ coverss pcs = coverss' pcs []
                         | otherwise = coverss' xs (x:cs)
 ----------------------------------------------------------------------------------------------------
 
+-- XR pc where pc >= nRor1W => 2nRor1W
+_XR_fn :: PortCapability -> Int -> Maybe PortCapability
+_XR_fn pc n
+    | pc `covers` bank = Just algo
+    | otherwise = Nothing
+    where bank = pc_nRor1W n
+          algo = pc_nRor1W (2*n)
+
+_XR :: PortCapability -> [PortCapability]
+_XR pc = let pcs = takeWhile isJust $ map (_XR_fn pc) [1..]
+         in if null pcs then [] else [fromJust $ last pcs]
+
+----------------------------------------------------------------------------------------------------
+
 -- MT pc1 pc2 where pc1 >= nRW and pc2 >= 2nR(n/2)W => nRnW
 _MT_fn1 :: PortCapability -> PortCapability -> Int -> Maybe PortCapability
 _MT_fn1 pc1 pc2 n
@@ -126,6 +140,9 @@ _Alg1 lvlfn lvlpred alg_name alg_pc_fn alg_cons alg1@(Algo _ pc1 lvl1 _)
     | otherwise    = []
     where lvl = lvlfn lvl1
 
+_XR_Alg :: Algo -> [Algo]
+_XR_Alg = _Alg1 (+1) (<=_MAX_XR_LEVEL) _XR_name _XR Algo
+
 _MT_Alg :: Algo -> Algo -> [Algo]
 _MT_Alg = _Alg2 (\lvl1 lvl2 -> max lvl1 lvl2 + 1) (<=_MAX_MT_LEVEL) _MT_name _MT Algo
 
@@ -142,7 +159,7 @@ _ALG_fns2 :: [Algo -> Algo -> [Algo]]
 _ALG_fns2 = [_MT_Alg, _REP_Alg]
 
 _ALG_fns1 :: [Algo -> [Algo]]
-_ALG_fns1 = []
+_ALG_fns1 = [_XR_Alg]
 
 -- assuming both algos have same name and portcap
 _alg_covers :: Algo -> Algo -> Bool
