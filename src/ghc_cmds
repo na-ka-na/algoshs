@@ -1,24 +1,24 @@
 Clean temp files
-rm -f *.hi *.o *.prof *.aux *.hp *.pdf *.ps Algos2 Algos3
+rm -f *.hi *.o *.prof *.aux *.hp *.pdf *.ps Algos
 
 Build normal
-ghc -O2 --make -main-is Algos3 Algos3.hs
+ghc -O --make -main-is Algos Algos.hs
 
 Running with profile mode
 1. Build normal
-ghc --make -main-is Algos3 Algos3.hs
+ghc --make -main-is Algos Algos.hs
 
 2. Build profile
-ghc --make -osuf o.prof -rtsopts -prof -fprof-cafs -fprof-auto -main-is Algos3 Algos3.hs
+ghc --make -osuf o.prof -rtsopts -prof -fprof-cafs -fprof-auto -main-is Algos Algos.hs
 
 * This prints only a summary 
-./Algos3 4 +RTS -sstderr
+./Algos 6 +RTS -sstderr
 
 * This produces a .prof file (cost centries)
-./Algos3 3 +RTS -p
+./Algos 6 +RTS -p
 
 * This produces a .hp file too
-./Algos3 4 +RTS -hc -p
+./Algos 6 +RTS -hc -p
 
 * See hp file
-hp2ps -c Algos3.hp && ps2pdf Algos3.ps && gnome-open Algos3.pdf
+hp2ps -c Algos.hp && ps2pdf Algos.ps && gnome-open Algos.pdf
