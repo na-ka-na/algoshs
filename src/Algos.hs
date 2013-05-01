@@ -147,7 +147,7 @@ _MT_Alg :: Algo -> Algo -> [Algo]
 _MT_Alg = _Alg2 (\lvl1 lvl2 -> max lvl1 lvl2 + 1) (<=_MAX_MT_LEVEL) _MT_name _MT Algo
 
 _REP_Alg :: Algo -> Algo -> [Algo]
-_REP_Alg = _Alg2 max (const True) _REP_name _REP (\name pc _ _ -> Algo name pc 0 [])
+_REP_Alg = _Alg2 max (const True) _REP_name _REP (\name pc lvl _ -> Algo name pc lvl [])
 
 _base_pcs :: [PortCapability]
 _base_pcs = [pc_nRW 1, pc_nRmW 1 1, pc_nRW 2, pc_nRmW 2 2]
