@@ -1,4 +1,4 @@
-module PortCapability4
+module PortCapability
 (
   PortCapability(..)
 , portCap

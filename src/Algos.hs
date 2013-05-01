@@ -1,10 +1,10 @@
-module Algos4 where
+module Algos where
 
 import Data.Hashable (Hashable, hash, hashWithSalt)
 import qualified Data.HashMap.Lazy as HM (empty, lookupDefault, insert, elems)
 import Data.List (sort)
 import Data.Maybe (fromJust, isJust, maybeToList)
-import PortCapability4
+import PortCapability
 import System.Environment
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
