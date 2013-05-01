@@ -11,6 +11,7 @@ executable algoshs
                    base >= 4,
                    unordered-containers,
                    hashable,
-                   random
+                   random,
+                   array
   ghc-options:     -Wall
 
