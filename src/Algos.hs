@@ -1,153 +1,100 @@
 module Algos where
 
-import Data.Hashable (Hashable, hash, hashWithSalt)
+import A_MT
+import A_REP
+import A_RL
+import A_XR
+import Algo
+import AlgoUtils
+import Constants
 import qualified Data.HashMap.Lazy as HM (empty, lookupDefault, insert, elems)
 import Data.List (sort)
-import Data.Maybe (fromJust, isJust, maybeToList)
 import PortCapability
 import System.Environment
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 ----------------------------------------------------------------------------------------------------
+-- 1.
+-- MT pc1 pc2 where pc1 >= XR(nRW) and pc2 >= 2nRnW => 2nRW
+-- 2RW_MT2, 4RW_dp_MT
 
-ceil2 :: Int -> Int
-ceil2 n = n `div` 2 + n `rem` 2
-
-pc_nRW :: Int -> PortCapability
-pc_nRW n = portCap $ show n ++ "RW"
-pc_nRor1W :: Int -> PortCapability
-pc_nRor1W n = portCap $ show n ++ "Ror1W"
-pc_nRmW :: Int -> Int -> PortCapability
-pc_nRmW n m = portCap $ show n ++ "R" ++ show m ++ "W"
-
-coverss :: [PortCapability] -> [PortCapability]
-coverss pcs = coverss' pcs []
-              where coverss' [] cs = cs
-                    coverss' (x:xs) cs
-                        | any (`covers` x) xs = coverss' xs cs
-                        | otherwise = coverss' xs (x:cs)
-----------------------------------------------------------------------------------------------------
-
--- XR pc where pc >= nRor1W => 2nRor1W
-_XR_fn :: PortCapability -> Int -> Maybe PortCapability
-_XR_fn pc n
-    | pc `covers` bank = Just algo
-    | otherwise = Nothing
-    where bank = pc_nRor1W n
-          algo = pc_nRor1W (2*n)
-
-_XR :: PortCapability -> [PortCapability]
-_XR pc = let pcs = takeWhile isJust $ map (_XR_fn pc) [1..]
-         in if null pcs then [] else [fromJust $ last pcs]
-
-----------------------------------------------------------------------------------------------------
-
--- MT pc1 pc2 where pc1 >= nRW and pc2 >= 2nR(n/2)W => nRnW
-_MT_fn1 :: PortCapability -> PortCapability -> Int -> Maybe PortCapability
-_MT_fn1 pc1 pc2 n
-    | (pc1 `covers` bank) && (pc2 `covers` state) = Just algo
-    | otherwise = Nothing
-    where bank  = pc_nRW n
-          state = pc_nRmW (2*n) (ceil2 n)
-          algo  = pc_nRmW n n
-
+-- 2.
 -- MT pc1 pc2 where pc1 >= nRor1W and pc2 >= (n+m)RmW => nRmW
-_MT_fn2 :: PortCapability -> PortCapability -> Int -> Int -> Maybe PortCapability
-_MT_fn2 pc1 pc2 n m
-    | (pc1 `covers` bank) && (pc2 `covers` state) = Just algo
-    | otherwise = Nothing
-    where bank = pc_nRor1W n
-          state = pc_nRmW (n+m) m
-          algo = pc_nRmW n m
+-- 1R2W_1p_MT, 1R3W_1p_MT, 1R4W_1p_MT, 2R1W_1p_MT, 2R1W_dp_MT, 2R2W_1p_MT, 2R3W_dp_MT, 2R4W_dp_MT, 3R1W_1p_MT
 
-_MT1 :: PortCapability -> PortCapability -> Maybe PortCapability
-_MT1 pc1 pc2 = let pcs = takeWhile isJust $ map (_MT_fn1 pc1 pc2) [1 ..]
-              in if null pcs then Nothing else last pcs
+-- 3.
+-- Is this subset of 2. ?
+-- MT pc1 pc2 where pc1 >= nRW and pc2 >= 2nR(n/2)W => nRnW
+-- 1R1W_MT, 2R2W_dp_MT
+-- if we change => to nRmW or 2mW, then we can cover
+-- 1R1Wor2W_MT
 
-_MT2_w :: PortCapability -> PortCapability -> Int -> Maybe PortCapability
-_MT2_w pc1 pc2 m = let pcs = takeWhile isJust $ map (\n -> _MT_fn2 pc1 pc2 n m) [1..]
-                   in if null pcs then Nothing else last pcs 
+-- Uncovered
+-- 2R2W_2p_MT (2Ror1R1W, 4R2W)
+-- 1R8W_1R1W_MT (n*1R1W, 8*1R1W) wtf
+-- 4R4W_4p_MT (4*n*1R1W, 3*4*1R1W)
+--
 
--- 3Ror1W 5R3W => 3R2W .. 2R3W
-_MT2 :: PortCapability -> PortCapability -> [PortCapability]
-_MT2 pc1 pc2 = let pcs = takeWhile isJust $ map (_MT2_w pc1 pc2) [1..]
-               in coverss $ map fromJust pcs
+-- 1.
+-- XR pc where pc >= nRor1W => 2nRor1W
 
-_MT :: PortCapability -> PortCapability -> [PortCapability]
-_MT pc1 pc2 = let pc' = _MT1 pc1 pc2
-                  pcs = _MT2 pc1 pc2
-              in coverss $ maybeToList pc' ++ pcs
+-- 2.
+-- XR 1R1W => 2Ror1R1W
+-- XR 2RW => 4Ror2R1Wor2W
+-- XR 2Ror1R1W => 3R1W
+
+-- 2Ror1R1Wor2W
+
+-- Uncovered
+-- 3R1W_dp_XR (missing corner)
+-- 3Ror1W_XR (missing corner)
+-- 2R1W_2p_XR (missing corner)
+-- 4R1W_2p_XR (XR.XR 2RW)
+-- 4Ror2R1W_XR (XR 2R1W)
+-- 6Ror4R1W_XR (XR 3R1W)
+
+-- 3.
+-- XR pc where pc >= nRW => (2Ror1W)^n
+
+-- 4.
+-- XR pc where pc >= nRmW, n>=m => OR (n'Rm'W, n'+m' = n+m, 0<=m'<=m)
+
+
+{- this is a comment
+   RL
+   
+   1.
+   XR(1RW),   2R1W      =>  2RW
+   XR(2RW),   4R2W      =>  4RW
+   
+   2.
+   1RW,       2R1W      =>  1R1W
+   1RW,       3R2W      =>  1R2W
+   2Ror1W,    3R1W      =>  2R1W
+   2Ror1W,    4R2W      =>  2R2W
+   3Ror1W,    4R1W      =>  3R1W
+   
+   
+   3.
+   1R1W,      3R1W      =>  1R2W
+   1R1W,      4R1W      =>  1R3W
+   2R1W,      4R1W      =>  2R2W
+   4R2W,      8R2W      =>  4R4W
+   2R2W,      5R2W      =>  2R3W
+   2R2W,      6R2W      =>  2R4W
+   
+-}
+
+-- 1.
+-- RL pc1 pc2 where pc1 >= XR(nRW) and pc2 >= 2nRnW => 2nRW
+
+-- 2.
+-- RL pc1 pc2 where pc1 >= nRor1W and pc2 >= (n+m)RmW => nRmW
+
+-- 3.
+-- RL pc1 pc2 where pc1 >= nRmW and pc2 >= (n+m+x)RmW => nR(m+x)W
+
 ----------------------------------------------------------------------------------------------------
-
--- REP pc1 pc2 where pc1 >= nRmW and pc2 >= n'RmW => (n+n')RmW
-_REP_fn :: PortCapability -> PortCapability -> Int -> Int -> Int -> Maybe PortCapability
-_REP_fn pc1 pc2 n n' m
-    | (pc1 `covers` bank1) && (pc2 `covers` bank2) = Just algo
-    | otherwise = Nothing
-    where bank1 = pc_nRmW n m
-          bank2 = pc_nRmW n' m
-          algo = pc_nRmW (n+n') m
-
-_REP_w :: PortCapability -> PortCapability -> Int -> Maybe PortCapability
-_REP_w pc1 pc2 m = let ns  = takeWhile (\n -> pc1 `covers` pc_nRmW n m) [1..]
-                       ns' = takeWhile (\n -> pc2 `covers` pc_nRmW n m) [1..]
-                   in if null ns || null ns'
-                        then Nothing else _REP_fn pc1 pc2 (last ns) (last ns') m
-
-_REP :: PortCapability -> PortCapability -> [PortCapability]
-_REP pc1 pc2 = let pcs = takeWhile isJust $ map (_REP_w pc1 pc2) [1..]
-               in if null pcs then [] else [fromJust $ last pcs]
-
-----------------------------------------------------------------------------------------------------
-
-_MT_name :: String; _MT_name = "_MT"
-_RL_name :: String; _RL_name = "_RL"
-_XR_name :: String; _XR_name = "_XR"
-_REP_name :: String; _REP_name = "_REP"
-_BASE_name :: String; _BASE_name = "_BASE"
-
-_MAX_MT_LEVEL :: Int; _MAX_MT_LEVEL = 4
-_MAX_RL_LEVEL :: Int; _MAX_RL_LEVEL = 4
-_MAX_XR_LEVEL :: Int; _MAX_XR_LEVEL = 3
-
--- name pc lvl algs
-data Algo = Algo String PortCapability Int [Algo] deriving (Eq, Ord)
-
-instance Hashable Algo where
-    hashWithSalt salt (Algo name pc lvl algs)
-        = foldr hashWithSalt salt $ [hash name, hash pc, lvl] ++ map hash algs
-
-instance Show Algo where
-    show (Algo name pc _ algs)
-        = show pc ++ (if name==_BASE_name then "" else name)
-          ++ (if null algs then "" else "::" ++ show algs)
-
-_Alg2 :: (Int -> Int -> Int) -> (Int -> Bool) -> String
-          -> (PortCapability -> PortCapability -> [PortCapability])
-          -> (String -> PortCapability -> Int -> [Algo] -> Algo)
-          -> Algo -> Algo -> [Algo]
-_Alg2 lvlfn lvlpred alg_name alg_pc_fn alg_cons alg1@(Algo _ pc1 lvl1 _ ) alg2@(Algo _ pc2 lvl2 _)
-    | lvlpred lvl = alg_pc_fn pc1 pc2 >>= (\pc -> [alg_cons alg_name pc lvl [alg1, alg2]])
-    | otherwise   = []
-    where lvl = lvlfn lvl1 lvl2
-
-_Alg1 :: (Int -> Int) -> (Int -> Bool) -> String
-         -> (PortCapability -> [PortCapability])
-         -> (String -> PortCapability -> Int -> [Algo] -> Algo)
-         -> Algo -> [Algo]
-_Alg1 lvlfn lvlpred alg_name alg_pc_fn alg_cons alg1@(Algo _ pc1 lvl1 _)
-    | lvlpred lvl  = alg_pc_fn pc1 >>= (\pc -> [alg_cons alg_name pc lvl [alg1]])
-    | otherwise    = []
-    where lvl = lvlfn lvl1
-
-_XR_Alg :: Algo -> [Algo]
-_XR_Alg = _Alg1 (+1) (<=_MAX_XR_LEVEL) _XR_name _XR Algo
-
-_MT_Alg :: Algo -> Algo -> [Algo]
-_MT_Alg = _Alg2 (\lvl1 lvl2 -> max lvl1 lvl2 + 1) (<=_MAX_MT_LEVEL) _MT_name _MT Algo
-
-_REP_Alg :: Algo -> Algo -> [Algo]
-_REP_Alg = _Alg2 max (const True) _REP_name _REP (\name pc lvl _ -> Algo name pc lvl [])
 
 _base_pcs :: [PortCapability]
 _base_pcs = [pc_nRW 1, pc_nRmW 1 1, pc_nRW 2, pc_nRmW 2 2]
@@ -156,16 +103,16 @@ _base_algs :: [Algo]
 _base_algs = map (\pc -> Algo _BASE_name pc 0 []) _base_pcs
 
 _ALG_fns2 :: [Algo -> Algo -> [Algo]]
-_ALG_fns2 = [_MT_Alg, _REP_Alg]
+_ALG_fns2 = [_MT_Alg, _RL_Alg, _REP_Alg]
 
 _ALG_fns1 :: [Algo -> [Algo]]
 _ALG_fns1 = [_XR_Alg]
 
 -- assuming both algos have same name and portcap
 _alg_covers :: Algo -> Algo -> Bool
-(Algo _ _ lvl1 as1) `_alg_covers` (Algo _ _ lvl2 as2)
-    | lvl1 <= lvl2
-        = and $ zipWith covers (map (\(Algo _ pc _ _) -> pc) as2) (map (\(Algo _ pc _ _) -> pc) as1)
+(Algo _ _ lvl1 pcs1) `_alg_covers` (Algo _ _ lvl2 pcs2)
+    | True -- lvl1 <= lvl2
+        = and $ zipWith covers pcs2 pcs1
     | otherwise = False
 
 -- only algos from one group are passed in to this function
