@@ -111,7 +111,7 @@ _ALG_fns1 = [_XR_Alg]
 -- assuming both algos have same name and portcap
 _alg_covers :: Algo -> Algo -> Bool
 (Algo _ _ lvl1 pcs1) `_alg_covers` (Algo _ _ lvl2 pcs2)
-    | True -- lvl1 <= lvl2
+    | lvl1 <= lvl2
         = and $ zipWith covers pcs2 pcs1
     | otherwise = False
 
