@@ -1,6 +1,9 @@
 module AlgoUtils where
 
 import Algo
+import Constants
+import Control.Monad (MonadPlus, mzero)
+import Data.List (intercalate)
 import Data.Maybe (isJust, fromJust)
 import PortCapability
 
@@ -8,6 +11,9 @@ import PortCapability
 
 ceil2 :: Int -> Int
 ceil2 n = n `div` 2 + n `rem` 2
+
+when :: (MonadPlus m) => Bool -> m a -> m a
+when p v = if p then v else mzero
 
 pc_fn1 :: (Int -> Maybe PortCapability) -> [PortCapability]
 pc_fn1 fn1 = let pcs = takeWhile isJust $ map fn1 [1..]
@@ -21,30 +27,67 @@ pc_fn3 :: (Int -> Int -> Int -> Maybe PortCapability) -> [PortCapability]
 pc_fn3 fn3 = let pcs = takeWhile (not.null) $ map (pc_fn2 . fn3) [1..]
              in filter_redundant_pcs $ concat pcs
 
-pc_noop :: PortCapability
-pc_noop = portCap "NOOP"
+pc_noop :: Maybe PortCapability
+pc_noop = Just $ portCap "NOOP"
 
-pc_nR :: Int -> PortCapability
+pc_nR :: Int -> Maybe PortCapability
 pc_nR 0 = pc_noop
-pc_nR n = portCap $ show n ++ "R"
+pc_nR n
+    | n <= _MAX_N_NR = Just $ portCap $ show n ++ "R"
+    | otherwise = Nothing
 
-pc_nW :: Int -> PortCapability
+pc_nW :: Int -> Maybe PortCapability
 pc_nW 0 = pc_noop
-pc_nW n = portCap $ show n ++ "W"
+pc_nW n
+    | n <= _MAX_N_NW = Just $ portCap $ show n ++ "W"
+    | otherwise = Nothing
 
-pc_nRW :: Int -> PortCapability
+pc_nRW :: Int -> Maybe PortCapability
 pc_nRW 0 = pc_noop
-pc_nRW n = portCap $ show n ++ "RW"
+pc_nRW n
+    | n <= _MAX_N_NRW = Just $ portCap $ show n ++ "RW"
+    | otherwise = Nothing
 
-pc_nRor1W :: Int -> PortCapability
+pc_nRor1W :: Int -> Maybe PortCapability
 pc_nRor1W 0 = pc_nW 1
-pc_nRor1W n = portCap $ show n ++ "Ror1W"
+pc_nRor1W n
+    | n <= _MAX_N_NRor1W = Just $ portCap $ show n ++ "Ror1W"
+    | otherwise = Nothing
 
-pc_nRmW :: Int -> Int -> PortCapability
+pc_nRmW :: Int -> Int -> Maybe PortCapability
 pc_nRmW 0 0 = pc_noop
 pc_nRmW 0 m = pc_nW m
 pc_nRmW n 0 = pc_nR n
-pc_nRmW n m = portCap $ show n ++ "R" ++ show m ++ "W"
+pc_nRmW n m
+    | (n+m) <= _MAX_N_PLUS_M_NRMW = Just $ portCap $ show n ++ "R" ++ show m ++ "W"
+    | otherwise = Nothing
+
+pc_ORed :: [PortCapability] -> Maybe PortCapability
+pc_ORed = Just . portCap . intercalate "or" . map show
+
+pc_ORed' :: [Maybe PortCapability] -> Maybe PortCapability
+pc_ORed' pcs = sequence pcs >>= pc_ORed
+
+pc_dotProd2Ror1W :: Int -> Maybe PortCapability
+pc_dotProd2Ror1W n = _pcor_to_portCap $ foldr1 _dot_prod $ replicate n (2,1,[])
+
+-- (n, m, [pq])
+-- (nR OR mW OR [pRqW])
+type PCOR = (Int, Int, [(Int, Int)])
+
+_pcor_to_portCap :: PCOR -> Maybe PortCapability
+_pcor_to_portCap (n, m, pqs)
+    = (>>=) (sequence ([pc_nR n, pc_nW m] ++
+                       [pc_nRmW p q | (p,q) <- pqs]))
+            (pc_ORed . filter_redundant_pcs)
+
+_dot_prod :: PCOR -> PCOR -> PCOR
+_dot_prod (r, w, rws) (r', w', r'w's)
+    = (r+r', w+w', [(r,w'), (r',w)]
+                   ++ [(r+a,b)   | (a,b) <- r'w's]
+                   ++ [(c,w+d)   | (c,d) <- r'w's]
+                   ++ [(e+r',f)  | (e,f) <- rws]
+                   ++ [(g,h+w')  | (g,h) <- rws])
 
 filter_redundant :: (a -> a -> Bool) -> [a] -> [a]
 filter_redundant covers_fn = fr []

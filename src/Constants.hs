@@ -11,3 +11,9 @@ _BASE_name :: String; _BASE_name = "_BASE"
 _MAX_MT_LEVEL :: Int; _MAX_MT_LEVEL = 4
 _MAX_RL_LEVEL :: Int; _MAX_RL_LEVEL = 4
 _MAX_XR_LEVEL :: Int; _MAX_XR_LEVEL = 3
+
+_MAX_N_NR :: Int; _MAX_N_NR = 16;
+_MAX_N_NW :: Int; _MAX_N_NW = 16;
+_MAX_N_NRW :: Int; _MAX_N_NRW = 8;
+_MAX_N_NRor1W :: Int; _MAX_N_NRor1W = 16;
+_MAX_N_PLUS_M_NRMW :: Int; _MAX_N_PLUS_M_NRMW = 16;

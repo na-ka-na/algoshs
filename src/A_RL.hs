@@ -18,28 +18,25 @@ import PortCapability
 -- RL pc1 pc2 where pc1 >= nRmW and pc2 >= (n+m+x)RmW => nR(m+x)W
 
 _RL1 :: PortCapability -> PortCapability -> Int -> Maybe PortCapability
-_RL1 pc1 pc2 n
-    | (pc1 `covers` bank) && (pc2 `covers` tag) = Just algo
-    | otherwise = Nothing
-    where bank  = _XR_nRW n
-          tag   = pc_nRmW (2*n) n
-          algo  = pc_nRW (2*n)
+_RL1 pc1 pc2 n = do
+    bank  <- _XR_nRW n
+    tag   <- pc_nRmW (2*n) n
+    algo  <- pc_nRW (2*n)
+    when ((pc1 `covers` bank) && (pc2 `covers` tag)) $ return algo
 
 _RL2 :: PortCapability -> PortCapability -> Int -> Int -> Maybe PortCapability
-_RL2 pc1 pc2 n m
-    | (pc1 `covers` bank) && (pc2 `covers` tag) = Just algo
-    | otherwise = Nothing
-    where bank  = pc_nRor1W n
-          tag   = pc_nRmW (n+m) m
-          algo  = pc_nRmW n m
+_RL2 pc1 pc2 n m = do
+    bank  <- pc_nRor1W n
+    tag   <- pc_nRmW (n+m) m
+    algo  <- pc_nRmW n m
+    when ((pc1 `covers` bank) && (pc2 `covers` tag)) $ return algo
 
 _RL3 :: PortCapability -> PortCapability -> Int -> Int -> Int -> Maybe PortCapability
-_RL3 pc1 pc2 n m x
-    | (pc1 `covers` bank) && (pc2 `covers` tag) = Just algo
-    | otherwise = Nothing
-    where bank  = pc_nRmW n m
-          tag   = pc_nRmW (n+m+x) m
-          algo  = pc_nRmW n (m+x)
+_RL3 pc1 pc2 n m x = do
+    bank  <- pc_nRmW n m
+    tag   <- pc_nRmW (n+m+x) m
+    algo  <- pc_nRmW n (m+x)
+    when ((pc1 `covers` bank) && (pc2 `covers` tag)) $ return algo
 
 _RL :: PortCapability -> PortCapability -> [PortCapability]
 _RL pc1 pc2 = filter_redundant_pcs $ concat [pc_fn1 $ _RL1 pc1 pc2,
