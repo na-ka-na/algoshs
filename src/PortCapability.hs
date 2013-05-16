@@ -10,7 +10,7 @@ import Data.Hashable (Hashable, hash, hashWithSalt)
 import qualified Data.HashSet as HS (HashSet, fromList, toList, unions, insert, empty, null, difference)
 import qualified Data.HashMap.Lazy as HM (HashMap, empty, insert, lookup)
 import Data.List ()
-import Data.IORef (IORef, newIORef, readIORef, writeIORef)
+import Data.IORef (IORef, newIORef, readIORef, modifyIORef)
 --import Debug.Trace (trace)
 import qualified PortCapParser as PP
 import System.IO.Unsafe (unsafePerformIO)
@@ -30,11 +30,9 @@ newf cacheRef f k
           cache <- readIORef cacheRef
           case HM.lookup k cache of
               Just v -> return v
-              Nothing -> let v = f k
-                             cache' = HM.insert k v cache
-                         in do
-                             writeIORef cacheRef cache'
-                             return v
+              Nothing -> do let v = f k
+                            modifyIORef cacheRef (HM.insert k v)
+                            return v
 
 -------------------------------------------------------------------------
 
