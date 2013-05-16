@@ -9,6 +9,7 @@ executable algoshs
   main-is:         Main.hs
   build-depends:   
                    base >= 4,
+                   containers,
                    unordered-containers,
                    hashable,
                    random,
