@@ -8,7 +8,7 @@ module PortCapability
 import Control.Exception (assert)
 import Data.Hashable (Hashable, hash, hashWithSalt)
 import qualified Data.HashSet as HS (HashSet, fromList, toList, unions, insert, empty, null, difference)
-import qualified Data.HashMap.Lazy as HM (HashMap, empty, insert, lookup)
+import qualified Data.HashMap.Strict as HM (HashMap, empty, insert, lookup)
 import Data.List ()
 import Data.IORef (IORef, newIORef, readIORef, modifyIORef)
 --import Debug.Trace (trace)
