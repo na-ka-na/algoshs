@@ -16,3 +16,6 @@ src/Algos.hp
 src/Algos.pdf
 src/Algos.prof
 src/Algos.ps
+src/Algos.prof*
+algos.txt
+rtl_algos.txt
