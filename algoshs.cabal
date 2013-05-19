@@ -12,6 +12,8 @@ executable algoshs
                    containers,
                    unordered-containers,
                    hashable,
+                   deepseq,
+                   parallel,
                    random,
                    array
   ghc-options:     -Wall
