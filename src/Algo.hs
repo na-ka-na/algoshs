@@ -1,6 +1,7 @@
 module Algo (Algo(..)) where
 
 import Constants
+import Control.DeepSeq (NFData(..))
 import Data.Hashable (Hashable, hash, hashWithSalt)
 import PortCapability
 
@@ -22,3 +23,6 @@ instance Show Algo where
 instance Ord Algo where
     (Algo name pc lvl pcs) `compare` (Algo name' pc' lvl' pcs')
         = compare (pc, name, lvl, pcs) (pc', name', lvl', pcs')
+
+instance NFData Algo where
+    rnf (Algo name pc lvl pcs) = rnf (name, pc, lvl, pcs) `seq` ()

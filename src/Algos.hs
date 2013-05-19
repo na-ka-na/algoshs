@@ -7,9 +7,13 @@ import A_XR
 import Algo
 import AlgoUtils
 import Constants
+--import Control.DeepSeq (deepseq)
+--import Control.Parallel (par, pseq)
+import Control.Parallel.Strategies (using, rdeepseq, rpar, evalList, dot)
 import qualified Data.HashMap.Lazy as HM (empty, lookupDefault, insert, elems)
 import Data.List (sort)
 import Data.Maybe (fromJust)
+--import Debug.Trace (trace)
 import PortCapability
 import System.Environment
 
@@ -48,13 +52,22 @@ _group_algs = HM.elems . foldr
                       HM.insert (name, pc) (alg:HM.lookupDefault [] (name, pc) acc) acc)
                   HM.empty
 
+_keep_good_algs :: [[Algo]] -> [Algo]
+_keep_good_algs = concatMap _filter_redundant_algs . _group_algs . concat
+
+_eval_alg2 :: (Algo -> Algo -> [Algo]) -> [Algo] -> [Algo]
+_eval_alg2 alg_fn algs = _keep_good_algs [alg_fn a1 a2 | a1 <- algs, a2 <- algs]
+
+_eval_alg1 :: (Algo -> [Algo]) -> [Algo] -> [Algo]
+_eval_alg1 alg_fn algs = _keep_good_algs [alg_fn a | a <- algs]
+
 _iter_alg :: [Algo] -> Int -> [Algo]
 _iter_alg algs n = foldr _iter algs [1..n]
-    where _iter _ acc = let as2 = [fn a1 a2 | a1 <- acc, a2 <- acc, fn <- _ALG_fns2]
-                            as1 = [fn a | a <- acc, fn <- _ALG_fns1]
-                        in concatMap _filter_redundant_algs
-                            $ _group_algs
-                            $ concat [acc, concat as2, concat as1]
+    where _iter _ acc = let fns = map _eval_alg2 _ALG_fns2 ++
+                                  map _eval_alg1 _ALG_fns1
+                            as' = map (\fn -> fn acc) fns
+                                    `using` evalList (rpar `dot` rdeepseq)
+                        in _keep_good_algs [acc, concat as']
 
 _iter_alg2 :: [Algo] -> Int -> [Algo]
 _iter_alg2 algs n = filter (\(Algo name _ _ _) -> name `notElem` [_BASE_name, _REP_name])

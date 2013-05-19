@@ -5,12 +5,13 @@ module PortCapability
 , covers
 ) where
 
+import Control.DeepSeq (NFData(..))
 import Control.Exception (assert)
 import Data.Hashable (Hashable, hash, hashWithSalt)
 import qualified Data.HashSet as HS (HashSet, fromList, toList, unions, insert, empty, null, difference)
 import qualified Data.HashMap.Strict as HM (HashMap, empty, insert, lookup)
 import Data.List ()
-import Data.IORef (IORef, newIORef, readIORef, modifyIORef)
+import Data.IORef (IORef, newIORef, atomicModifyIORef)
 --import Debug.Trace (trace)
 import qualified PortCapParser as PP
 import System.IO.Unsafe (unsafePerformIO)
@@ -27,19 +28,25 @@ memoize1 f = unsafePerformIO $ do
 newf :: (Eq k, Hashable k) => IORef(HM.HashMap k v) -> (k -> v) -> k -> v
 newf cacheRef f k
     = unsafePerformIO $ do
-          cache <- readIORef cacheRef
+          cache <- atomicModifyIORef cacheRef (\cache -> (cache, cache))
           case HM.lookup k cache of
               Just v -> return v
               Nothing -> do let v = f k
-                            modifyIORef cacheRef (HM.insert k v)
+                            _ <- atomicModifyIORef cacheRef
+                                    (\cache' -> let cache'' = HM.insert k v cache'
+                                                in (cache'', cache''))
                             return v
 
 -------------------------------------------------------------------------
 
 -- r rw w ru c a
 data PC = PC Int Int Int Int Int Int deriving (Eq, Ord, Show)
+
 instance Hashable PC where
     hashWithSalt salt (PC r rw w ru c a) = salt * (r+rw+w+ru+c+a)
+
+instance NFData PC where
+    rnf (PC r rw w ru c a) = rnf (r, rw, w, ru, c, a) `seq` ()
 
 newpc :: Int -> Int -> Int -> Int -> Int -> Int -> PC
 newpc r rw w ru c a = PC (assert (r>=0) r) (assert (rw>=0) rw) (assert (w>=0) w)
@@ -84,6 +91,10 @@ instance Show PortCapability where
 instance Ord PortCapability where
     compare pc1@(PortCapability orig1 _ _ _ _ _) pc2@(PortCapability orig2 _ _ _ _ _)
         = compare (pcForm pc1, orig1) (pcForm pc2, orig2)
+
+instance NFData PortCapability where
+    rnf (PortCapability orig hsh pcs simple type1s _)
+        = rnf (orig, hsh, pcs, simple, type1s) `seq` ()
 
 portCap :: String -> PortCapability
 portCap = memoize1
