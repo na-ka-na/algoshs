@@ -53,7 +53,10 @@ _group_algs = HM.elems . foldr
                   HM.empty
 
 _keep_good_algs :: [[Algo]] -> [Algo]
-_keep_good_algs = concatMap _filter_redundant_algs . _group_algs . concat
+_keep_good_algs algss = let grouped_algs = _group_algs $ concat algss
+                            filtered_algs = map _filter_redundant_algs grouped_algs
+                                                --`using` evalList (rpar `dot` rdeepseq)
+                        in concat filtered_algs
 
 _eval_alg2 :: (Algo -> Algo -> [Algo]) -> [Algo] -> [Algo]
 _eval_alg2 alg_fn algs = _keep_good_algs [alg_fn a1 a2 | a1 <- algs, a2 <- algs]
