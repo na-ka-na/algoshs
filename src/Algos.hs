@@ -41,11 +41,7 @@ _alg_covers :: Algo -> Algo -> Bool
 
 -- only algos from one group are passed in to this function
 _filter_redundant_algs :: [Algo] -> [Algo]
-_filter_redundant_algs = fra []
-    where fra good_algs [] = good_algs
-          fra good_algs (alg:rem_algs)
-              | any (`_alg_covers` alg) $ good_algs ++ rem_algs = fra good_algs rem_algs
-              | otherwise = fra (alg:good_algs) rem_algs
+_filter_redundant_algs = filter_redundant _alg_covers
 
 _group_algs :: [Algo] -> [[Algo]]
 _group_algs = HM.elems . foldr
