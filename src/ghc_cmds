@@ -2,14 +2,14 @@ Clean temp files
 rm -f *.hi *.o *.prof *.aux *.hp *.pdf *.ps Algos
 
 Build normal
-ghc -O --make -main-is Algos Algos.hs
+ghc -threaded --make -main-is Algos Algos.hs
 
 Running with profile mode
 1. Build normal
-ghc --make -main-is Algos Algos.hs
+ghc -threaded --make -main-is Algos Algos.hs
 
 2. Build profile
-ghc --make -osuf o.prof -rtsopts -prof -fprof-cafs -fprof-auto -main-is Algos Algos.hs
+ghc -threaded --make -osuf o.prof -rtsopts -prof -fprof-cafs -fprof-auto -main-is Algos Algos.hs
 
 * This prints only a summary 
 ./Algos 6 +RTS -sstderr
