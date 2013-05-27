@@ -16,6 +16,7 @@ import Data.Maybe (fromJust)
 --import Debug.Trace (trace)
 import PortCapability
 import System.Environment
+--import System.IO.Unsafe (unsafePerformIO)
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -26,10 +27,10 @@ _base_algs :: [Algo]
 _base_algs = map (\pc -> Algo _BASE_name pc 0 []) _base_pcs
 
 _ALG_fns2 :: [Algo -> Algo -> [Algo]]
-_ALG_fns2 = [_MT_Alg, _RL_Alg, _REP_Alg]
+_ALG_fns2 = concat [_MT_Alg, _RL_Alg, _REP_Alg]
 
 _ALG_fns1 :: [Algo -> [Algo]]
-_ALG_fns1 = [_XR_Alg]
+_ALG_fns1 = _XR_Alg
 
 -- assuming both algos have same name and portcap
 _alg_covers :: Algo -> Algo -> Bool
@@ -55,7 +56,7 @@ _group_algs = HM.elems . foldr
 _keep_good_algs :: [[Algo]] -> [Algo]
 _keep_good_algs algss = let grouped_algs = _group_algs $ concat algss
                             filtered_algs = map _filter_redundant_algs grouped_algs
-                                                --`using` evalList (rpar `dot` rdeepseq)
+                                                `using` evalList (rpar `dot` rdeepseq)
                         in concat filtered_algs
 
 _eval_alg2 :: (Algo -> Algo -> [Algo]) -> [Algo] -> [Algo]
@@ -70,7 +71,8 @@ _iter_alg algs n = foldr _iter algs [1..n]
                                   map _eval_alg1 _ALG_fns1
                             as' = map (\fn -> fn acc) fns
                                     `using` evalList (rpar `dot` rdeepseq)
-                        in _keep_good_algs [acc, concat as']
+                            bs = _keep_good_algs [acc, concat as']
+                        in bs
 
 _iter_alg2 :: [Algo] -> Int -> [Algo]
 _iter_alg2 algs n = filter (\(Algo name _ _ _) -> name `notElem` [_BASE_name, _REP_name])

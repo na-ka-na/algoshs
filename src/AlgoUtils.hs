@@ -2,12 +2,23 @@ module AlgoUtils where
 
 import Algo
 import Constants
+import Control.DeepSeq (NFData(..), deepseq)
 import Control.Monad (MonadPlus, mzero)
 import Data.List (intercalate)
 import Data.Maybe (isJust, fromJust)
+import Data.Time.Clock (getCurrentTime, diffUTCTime)
 import PortCapability
+import System.IO (hPrint, stderr)
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
+
+timeIt :: (NFData a) => IO a -> IO a
+timeIt io = do
+    t1 <- getCurrentTime
+    a <- io
+    t2 <- a `deepseq` getCurrentTime
+    hPrint stderr $ diffUTCTime t2 t1
+    return a
 
 ceil2 :: Int -> Int
 ceil2 n = n `div` 2 + n `rem` 2
@@ -102,10 +113,10 @@ filter_redundant_pcs = filter_redundant covers
 alg_fn2 ::   (Int -> Int -> Int) -- level incing fn
           -> (Int -> Bool) -- lvl predicate
           ->  String -- Algo name
-          -> (PortCapability -> PortCapability -> [PortCapability]) -- pc fn
           -> (String -> PortCapability -> Int -> [PortCapability] -> Algo) -- algo cons
+          -> (PortCapability -> PortCapability -> [PortCapability]) -- pc fn
           ->  Algo -> Algo -> [Algo]
-alg_fn2 lvlfn lvlpred alg_name alg_pc_fn alg_cons (Algo _ pc1 lvl1 _ ) (Algo _ pc2 lvl2 _)
+alg_fn2 lvlfn lvlpred alg_name alg_cons alg_pc_fn (Algo _ pc1 lvl1 _ ) (Algo _ pc2 lvl2 _)
     | lvlpred lvl = alg_pc_fn pc1 pc2 >>= (\pc -> [alg_cons alg_name pc lvl [pc1, pc2]])
     | otherwise   = []
     where lvl = lvlfn lvl1 lvl2
@@ -113,10 +124,10 @@ alg_fn2 lvlfn lvlpred alg_name alg_pc_fn alg_cons (Algo _ pc1 lvl1 _ ) (Algo _ p
 alg_fn1 ::   (Int -> Int) -- level incing fn
           -> (Int -> Bool) -- lvl predicate
           ->  String -- Algo name
-          -> (PortCapability -> [PortCapability]) -- pc fn
           -> (String -> PortCapability -> Int -> [PortCapability] -> Algo) -- algo cons
+          -> (PortCapability -> [PortCapability]) -- pc fn
           ->  Algo -> [Algo]
-alg_fn1 lvlfn lvlpred alg_name alg_pc_fn alg_cons (Algo _ pc1 lvl1 _)
+alg_fn1 lvlfn lvlpred alg_name alg_cons alg_pc_fn (Algo _ pc1 lvl1 _)
     | lvlpred lvl  = alg_pc_fn pc1 >>= (\pc -> [alg_cons alg_name pc lvl [pc1]])
     | otherwise    = []
     where lvl = lvlfn lvl1

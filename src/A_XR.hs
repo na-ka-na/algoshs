@@ -44,15 +44,12 @@ _XR3 pc n m = do
 _XR_nRW :: Int -> Maybe PortCapability
 _XR_nRW n = pc_nRW n >>= (`_XR2` n)
 
-_XR :: PortCapability -> [PortCapability]
-_XR pc = filter_redundant_pcs $ concat [pc_fn1 $ _XR1 pc,
-                                        pc_fn1 $ _XR2 pc,
-                                        pc_fn2 $ _XR3 pc]
-
-_XR_Alg :: Algo -> [Algo]
-_XR_Alg = alg_fn1
-              (+1) -- inc level
-              (<= _MAX_XR_LEVEL) -- max level
-              _XR_name
-              _XR
-              Algo
+_XR_Alg :: [Algo -> [Algo]]
+_XR_Alg = map (alg_fn1
+                 (+1) -- inc level
+                 (<= _MAX_XR_LEVEL) -- max level
+                 _XR_name
+                 Algo)
+              [pc_fn1 . _XR1,
+               pc_fn1 . _XR2,
+               pc_fn2 . _XR3]

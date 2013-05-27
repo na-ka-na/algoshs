@@ -38,15 +38,12 @@ _RL3 pc1 pc2 n m x = do
     algo  <- pc_nRmW n (m+x)
     when ((pc1 `covers` bank) && (pc2 `covers` tag)) $ return algo
 
-_RL :: PortCapability -> PortCapability -> [PortCapability]
-_RL pc1 pc2 = filter_redundant_pcs $ concat [pc_fn1 $ _RL1 pc1 pc2,
-                                             pc_fn2 $ _RL2 pc1 pc2,
-                                             pc_fn3 $ _RL3 pc1 pc2]
-
-_RL_Alg :: Algo -> Algo -> [Algo]
-_RL_Alg = alg_fn2
-              (\lvl1 lvl2 -> max lvl1 lvl2 + 1) -- inc level
-              (<= _MAX_RL_LEVEL) -- max level
-              _RL_name
-              _RL
-              Algo
+_RL_Alg :: [Algo -> Algo -> [Algo]]
+_RL_Alg = map (alg_fn2
+                 (\lvl1 lvl2 -> max lvl1 lvl2 + 1) -- inc level
+                 (<= _MAX_RL_LEVEL) -- max level
+                 _RL_name
+                 Algo)
+              [\pc1 pc2 -> pc_fn1 $ _RL1 pc1 pc2,
+               \pc1 pc2 -> pc_fn2 $ _RL2 pc1 pc2,
+               \pc1 pc2 -> pc_fn3 $ _RL3 pc1 pc2]

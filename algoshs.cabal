@@ -15,6 +15,7 @@ executable algoshs
                    deepseq,
                    parallel,
                    random,
-                   array
+                   array,
+                   time
   ghc-options:     -Wall
 

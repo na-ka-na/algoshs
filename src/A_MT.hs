@@ -39,14 +39,12 @@ _MT3 pc1 pc2 n = do
     algo  <- pc_nRmW n n
     when ((pc1 `covers` bank) && (pc2 `covers` state)) $ return algo
 
-_MT :: PortCapability -> PortCapability -> [PortCapability]
-_MT pc1 pc2 = filter_redundant_pcs $ concat [pc_fn1 $ _MT1 pc1 pc2,
-                                             pc_fn2 $ _MT2 pc1 pc2,
-                                             pc_fn1 $ _MT3 pc1 pc2]
-_MT_Alg :: Algo -> Algo -> [Algo]
-_MT_Alg = alg_fn2
-              (\lvl1 lvl2 -> max lvl1 lvl2 + 1) -- inc level
-              (<= _MAX_MT_LEVEL) -- max level
-              _MT_name
-              _MT
-              Algo
+_MT_Alg :: [Algo -> Algo -> [Algo]]
+_MT_Alg = map (alg_fn2
+                (\lvl1 lvl2 -> max lvl1 lvl2 + 1) -- inc level
+                (<= _MAX_MT_LEVEL) -- max level
+                _MT_name
+                Algo)
+              [\pc1 pc2 -> pc_fn1 $ _MT1 pc1 pc2,
+               \pc1 pc2 -> pc_fn2 $ _MT2 pc1 pc2,
+               \pc1 pc2 -> pc_fn1 $ _MT3 pc1 pc2]

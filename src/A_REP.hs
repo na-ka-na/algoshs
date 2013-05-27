@@ -15,13 +15,10 @@ _REP1 pc1 pc2 n n' m = do
     algo <- pc_nRmW (n+n') m
     when ((pc1 `covers` bank1) && (pc2 `covers` bank2)) $ return algo
 
-_REP :: PortCapability -> PortCapability -> [PortCapability]
-_REP pc1 pc2 = filter_redundant_pcs $ pc_fn3 $ _REP1 pc1 pc2
-
-_REP_Alg :: Algo -> Algo -> [Algo]
-_REP_Alg = alg_fn2
-               max -- pick the max level of the two algos
-               (const True) -- no restriction on level
-               _REP_name
-               _REP
-               (\name pc lvl _ -> Algo name pc lvl []) -- no dependencies
+_REP_Alg :: [Algo -> Algo -> [Algo]]
+_REP_Alg = map (alg_fn2
+                  max -- pick the max level of the two algos
+                  (const True) -- no restriction on level
+                  _REP_name
+                  (\name pc lvl _ -> Algo name pc lvl [])) -- no dependencies
+               [\pc1 pc2 -> pc_fn3 $ _REP1 pc1 pc2]
