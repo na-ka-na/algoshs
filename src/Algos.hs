@@ -8,9 +8,10 @@ import A_XR
 import AlgoRegistry
 import AlgoUtils
 import Constants
+--import Control.Concurrent (threadDelay)
 --import Control.DeepSeq (deepseq)
 --import Control.Parallel (par, pseq)
---import Control.Parallel.Strategies (using, rdeepseq, rpar, evalList, dot)
+import Control.Parallel.Strategies (using, rdeepseq, rpar, evalList, dot)
 import Data.List (sort)
 import Data.Maybe (fromJust)
 --import Debug.Trace (trace)
@@ -41,8 +42,9 @@ _algFns :: [AlgoRegistry -> [Algo]]
 _algFns = concat [_MT_Alg, _RL_Alg, _XR_Alg, _REP_Alg]
 
 _iter :: AlgoRegistry -> AlgoRegistry
-_iter reg = let algs = concatMap (\f -> f reg) _algFns
-            in foldr addAlgToReg reg algs
+_iter reg = let algss = map (\fn -> fn reg) _algFns
+                            `using` evalList (rpar `dot` rdeepseq)
+            in foldr addAlgToReg reg $ concat algss
 
 _printReg :: AlgoRegistry -> IO()
 _printReg reg
