@@ -1,0 +1,2 @@
+rm -f *.hi *.o *.prof *.aux *.hp *.pdf *.ps Algos
+ghc -O -threaded --make -main-is Algos Algos.hs 
