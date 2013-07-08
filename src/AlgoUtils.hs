@@ -9,7 +9,6 @@ import Data.List (intercalate)
 import Data.Maybe (isJust, fromJust)
 import Data.Time.Clock (getCurrentTime, diffUTCTime)
 import Data.Typeable
-import Debug.Trace as DT (trace)
 import PortCapability
 import System.IO (hPrint, stderr)
 
@@ -58,9 +57,6 @@ timeIt io = do
     t2 <- a `deepseq` getCurrentTime
     hPrint stderr $ diffUTCTime t2 t1
     return a
-
-trace :: (Show a, Show b) => a -> b -> b
-trace a b = DT.trace (show a ++ show b) b
 
 ceil2 :: Int -> Int
 ceil2 n = n `div` 2 + n `rem` 2
@@ -141,7 +137,7 @@ _pcor_to_portCap :: PCOR -> Maybe PortCapability
 _pcor_to_portCap (n, m, pqs)
     = (>>=) (sequence ([pc_nR n, pc_nW m] ++
                        [pc_nRmW p q | (p,q) <- pqs]))
-            (pc_ORed . filter_redundant_pcs)
+            (pc_ORed . _filter_redundant_pcs)
 
 _dot_prod :: PCOR -> PCOR -> PCOR
 _dot_prod (r, w, rws) (r', w', r'w's)
@@ -151,12 +147,12 @@ _dot_prod (r, w, rws) (r', w', r'w's)
                    ++ [(e+r',f)  | (e,f) <- rws]
                    ++ [(g,h+w')  | (g,h) <- rws])
 
-filter_redundant :: (a -> a -> Bool) -> [a] -> [a]
-filter_redundant covers_fn = fr []
+_filter_redundant :: (a -> a -> Bool) -> [a] -> [a]
+_filter_redundant covers_fn = fr []
     where fr goods [] = goods
           fr goods (a:rems)
               | any (`covers_fn` a) $ goods ++ rems = fr goods rems
               | otherwise = fr (a:goods) rems
 
-filter_redundant_pcs :: [PortCapability] -> [PortCapability]
-filter_redundant_pcs = filter_redundant covers
+_filter_redundant_pcs :: [PortCapability] -> [PortCapability]
+_filter_redundant_pcs = _filter_redundant covers
