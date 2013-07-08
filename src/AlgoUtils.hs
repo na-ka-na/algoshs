@@ -1,16 +1,55 @@
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 module AlgoUtils where
 
-import Algo
 import Constants
 import Control.DeepSeq (NFData(..), deepseq)
 import Control.Monad (MonadPlus, mzero)
 import Data.List (intercalate)
 import Data.Maybe (isJust, fromJust)
 import Data.Time.Clock (getCurrentTime, diffUTCTime)
+import Data.Typeable
+import Debug.Trace as DT (trace)
 import PortCapability
 import System.IO (hPrint, stderr)
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
+
+--------------------------------------------------------------------------
+class (Eq a, Typeable a) => AlgoLike a where
+    getName :: a -> String
+    getPortCap :: a -> PortCapability
+    getDeps :: a -> [PortCapability]
+    getLvl :: a -> Int
+
+data Algo = forall a . (AlgoLike a) => MkAlgo a deriving (Typeable)
+
+instance Eq Algo where
+    (MkAlgo a) == (MkAlgo a') = Just a == cast a'
+
+instance AlgoLike Algo where
+    getName (MkAlgo a) = getName a
+    getPortCap (MkAlgo a) = getPortCap a
+    getDeps (MkAlgo a) = getDeps a
+    getLvl (MkAlgo a) = getLvl a
+
+instance Show Algo where
+    show a = show (getPortCap a)
+               ++ (if getName a == _BASE_name then "" else getName a)
+               ++ (if null (getDeps a) then "" else "::" ++ show (getDeps a))
+               ++ ("(" ++ show (getLvl a) ++ ")")
+
+instance Ord Algo where
+    a `compare` a'
+        = compare (getPortCap a, getName a, getLvl a, getDeps a)
+                  (getPortCap a', getName a', getLvl a', getDeps a')
+
+instance NFData Algo where
+    rnf a = rnf (getName a, getPortCap a, getLvl a, getDeps a) `seq` ()
+
+toAlgo :: AlgoLike a => a -> Algo
+toAlgo = MkAlgo
+--------------------------------------------------------------------------
 
 timeIt :: (NFData a) => IO a -> IO a
 timeIt io = do
@@ -20,23 +59,35 @@ timeIt io = do
     hPrint stderr $ diffUTCTime t2 t1
     return a
 
+trace :: (Show a, Show b) => a -> b -> b
+trace a b = DT.trace (show a ++ show b) b
+
 ceil2 :: Int -> Int
 ceil2 n = n `div` 2 + n `rem` 2
 
 when :: (MonadPlus m) => Bool -> m a -> m a
 when p v = if p then v else mzero
 
-pc_fn1 :: (Int -> Maybe PortCapability) -> [PortCapability]
-pc_fn1 fn1 = let pcs = takeWhile isJust $ map fn1 [1..]
-             in if null pcs then [] else [fromJust $ last pcs]
+-- a = AlgoSpecific, b = AlgoRegistry
+alg_fn1 :: (Int -> Maybe a) -> (b -> a -> [Algo]) -> b -> [Algo]
+alg_fn1 f g b
+    = concat
+        $ takeWhile (not.null)
+        $ map (g b . fromJust)
+        $ takeWhile isJust
+        $ map f [1..]
 
-pc_fn2 :: (Int -> Int -> Maybe PortCapability) -> [PortCapability]
-pc_fn2 fn2 = let pcs = takeWhile (not.null) $ map (pc_fn1 . fn2) [1..]
-             in filter_redundant_pcs $ concat pcs
+alg_fn2 :: (Int -> Int -> Maybe a) -> (b -> a -> [Algo]) -> b -> [Algo]
+alg_fn2 f g b
+    = concat
+        $ takeWhile (not.null)
+        $ map (\i -> alg_fn1 (f i) g b) [1..]
 
-pc_fn3 :: (Int -> Int -> Int -> Maybe PortCapability) -> [PortCapability]
-pc_fn3 fn3 = let pcs = takeWhile (not.null) $ map (pc_fn2 . fn3) [1..]
-             in filter_redundant_pcs $ concat pcs
+alg_fn3 :: (Int -> Int -> Int -> Maybe a) -> (b -> a -> [Algo]) -> b -> [Algo]
+alg_fn3 f g b
+    = concat
+        $ takeWhile (not.null)
+        $ map (\i -> alg_fn2 (f i) g b) [1..]
 
 pc_noop :: Maybe PortCapability
 pc_noop = Just $ portCap "NOOP"
@@ -109,26 +160,3 @@ filter_redundant covers_fn = fr []
 
 filter_redundant_pcs :: [PortCapability] -> [PortCapability]
 filter_redundant_pcs = filter_redundant covers
-
-alg_fn2 ::   (Int -> Int -> Int) -- level incing fn
-          -> (Int -> Bool) -- lvl predicate
-          ->  String -- Algo name
-          -> (String -> PortCapability -> Int -> [PortCapability] -> Algo) -- algo cons
-          -> (PortCapability -> PortCapability -> [PortCapability]) -- pc fn
-          ->  Algo -> Algo -> [Algo]
-alg_fn2 lvlfn lvlpred alg_name alg_cons alg_pc_fn (Algo _ pc1 lvl1 _ ) (Algo _ pc2 lvl2 _)
-    | lvlpred lvl = alg_pc_fn pc1 pc2 >>= (\pc -> [alg_cons alg_name pc lvl [pc1, pc2]])
-    | otherwise   = []
-    where lvl = lvlfn lvl1 lvl2
-
-alg_fn1 ::   (Int -> Int) -- level incing fn
-          -> (Int -> Bool) -- lvl predicate
-          ->  String -- Algo name
-          -> (String -> PortCapability -> Int -> [PortCapability] -> Algo) -- algo cons
-          -> (PortCapability -> [PortCapability]) -- pc fn
-          ->  Algo -> [Algo]
-alg_fn1 lvlfn lvlpred alg_name alg_cons alg_pc_fn (Algo _ pc1 lvl1 _)
-    | lvlpred lvl  = alg_pc_fn pc1 >>= (\pc -> [alg_cons alg_name pc lvl [pc1]])
-    | otherwise    = []
-    where lvl = lvlfn lvl1
-

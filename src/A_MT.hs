@@ -1,12 +1,18 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module A_MT (_MT_Alg) where
 
-import Algo
 import A_XR (_XR_nRW)
-import Constants
+import AlgoRegistry
 import AlgoUtils
+import Constants
+import Data.Typeable
 import PortCapability
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
+
+type Bank = PortCapability
+type State = PortCapability
+type Lvl = Int
 
 -- 1.
 -- MT pc1 pc2 where pc1 >= XR(nRW) and pc2 >= 2nRnW => 2nRW
@@ -18,33 +24,45 @@ import PortCapability
 -- MT pc1 pc2 where pc1 >= nRW and pc2 >= 2nR(n/2)W => nRnW
 -- if we change => to nRmW or 2mW, then we can cover 1R1Wor2W
 
-_MT1 :: PortCapability -> PortCapability -> Int -> Maybe PortCapability
-_MT1 pc1 pc2 n = do
+_MT1 :: Int -> Maybe (Bank, State, PortCapability)
+_MT1 n = do
     bank  <- _XR_nRW n
     state <- pc_nRmW (2*n) n
     algo  <- pc_nRW (2*n)
-    when ((pc1 `covers` bank) && (pc2 `covers` state)) $ return algo
+    return (bank, state, algo)
 
-_MT2 :: PortCapability -> PortCapability -> Int -> Int -> Maybe PortCapability
-_MT2 pc1 pc2 n m = do
+_MT2 :: Int -> Int -> Maybe (Bank, State, PortCapability)
+_MT2 n m = do
     bank  <- pc_nRor1W n
     state <- pc_nRmW (n+m) m
     algo  <- pc_nRmW n m
-    when ((pc1 `covers` bank) && (pc2 `covers` state)) $ return algo
+    return (bank, state, algo)
 
-_MT3 :: PortCapability -> PortCapability -> Int -> Maybe PortCapability
-_MT3 pc1 pc2 n = do
+_MT3 :: Int -> Maybe (Bank, State, PortCapability)
+_MT3 n = do
     bank  <- pc_nRW n
     state <- pc_nRmW (2*n) (ceil2 n)
     algo  <- pc_nRmW n n
-    when ((pc1 `covers` bank) && (pc2 `covers` state)) $ return algo
+    return (bank, state, algo)
 
-_MT_Alg :: [Algo -> Algo -> [Algo]]
-_MT_Alg = map (alg_fn2
-                (\lvl1 lvl2 -> max lvl1 lvl2 + 1) -- inc level
-                (<= _MAX_MT_LEVEL) -- max level
-                _MT_name
-                Algo)
-              [\pc1 pc2 -> pc_fn1 $ _MT1 pc1 pc2,
-               \pc1 pc2 -> pc_fn2 $ _MT2 pc1 pc2,
-               \pc1 pc2 -> pc_fn1 $ _MT3 pc1 pc2]
+data A_MT = A_MT PortCapability Lvl Bank State deriving (Eq, Typeable)
+instance AlgoLike A_MT where
+    getName _ = _MT_name
+    getPortCap (A_MT pc _ _ _) = pc
+    getDeps (A_MT _ _ bank state) = [bank, state]
+    getLvl (A_MT _ lvl _ _) = lvl
+
+_to_A_MT :: AlgoRegistry -> (Bank, State, PortCapability) -> [Algo]
+_to_A_MT ar (bank, state, algo) = do
+    (bankLvl, bank') <- getFromReg bank ar
+    (stateLvl, state') <- getFromReg state ar
+    let algoLvl = max bankLvl stateLvl + 1
+    when (algoLvl <= _MAX_MT_LEVEL) $
+        return $ toAlgo $ A_MT algo algoLvl bank' state'
+
+_MT_Alg :: [AlgoRegistry -> [Algo]]
+_MT_Alg
+    = map (\f -> f _to_A_MT)
+        [alg_fn1 _MT1,
+         alg_fn2 _MT2,
+         alg_fn1 _MT3]

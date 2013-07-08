@@ -1,24 +1,41 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module A_REP (_REP_Alg) where
 
-import Algo
+import AlgoRegistry
 import AlgoUtils
 import Constants
+import Data.Typeable
 import PortCapability
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
+type Bank1 = PortCapability
+type Bank2 = PortCapability
+type Lvl = Int
+
 -- REP pc1 pc2 where pc1 >= nRmW and pc2 >= n'RmW => (n+n')RmW
-_REP1 :: PortCapability -> PortCapability -> Int -> Int -> Int -> Maybe PortCapability
-_REP1 pc1 pc2 n n' m = do
+_REP1 :: Int -> Int -> Int -> Maybe (Bank1, Bank2, PortCapability)
+_REP1 n n' m = do
     bank1 <- pc_nRmW n m
     bank2 <- pc_nRmW n' m
     algo <- pc_nRmW (n+n') m
-    when ((pc1 `covers` bank1) && (pc2 `covers` bank2)) $ return algo
+    return (bank1, bank2, algo)
 
-_REP_Alg :: [Algo -> Algo -> [Algo]]
-_REP_Alg = map (alg_fn2
-                  max -- pick the max level of the two algos
-                  (const True) -- no restriction on level
-                  _REP_name
-                  (\name pc lvl _ -> Algo name pc lvl [])) -- no dependencies
-               [\pc1 pc2 -> pc_fn3 $ _REP1 pc1 pc2]
+data A_REP = A_REP PortCapability Lvl Bank1 Bank2 deriving (Eq, Typeable)
+instance AlgoLike A_REP where
+    getName _ = _REP_name
+    getPortCap (A_REP pc _ _ _) = pc
+    getDeps _ = []
+    getLvl (A_REP _ lvl _ _) = lvl
+
+_to_A_REP :: AlgoRegistry -> (Bank1, Bank2, PortCapability) -> [Algo]
+_to_A_REP ar (bank1, bank2, algo) = do
+    (bank1Lvl, bank1') <- getFromReg bank1 ar
+    (bank2Lvl, bank2') <- getFromReg bank2 ar
+    let algoLvl = max bank1Lvl bank2Lvl
+    return $ toAlgo $ A_REP algo algoLvl bank1' bank2'
+
+_REP_Alg :: [AlgoRegistry -> [Algo]]
+_REP_Alg
+    = map (\f -> f _to_A_REP)
+        [alg_fn3 _REP1]
