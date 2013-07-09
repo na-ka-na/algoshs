@@ -21,8 +21,7 @@ type Lvl = Int
 -- MT pc1 pc2 where pc1 >= nRor1W and pc2 >= (n+m)RmW => nRmW
 
 -- 3.
--- MT pc1 pc2 where pc1 >= nRW and pc2 >= 2nR(n/2)W => nRnW
--- if we change => to nRmW or 2mW, then we can cover 1R1Wor2W
+-- MT pc1 pc2 where pc1 >= nRW and pc2 >= (n+m)RmW => nRmW
 
 _MT1 :: Int -> Maybe (Bank, State, PortCapability)
 _MT1 n = do
@@ -38,11 +37,11 @@ _MT2 n m = do
     algo  <- pc_nRmW n m
     return (bank, state, algo)
 
-_MT3 :: Int -> Maybe (Bank, State, PortCapability)
-_MT3 n = do
+_MT3 :: Int -> Int -> Maybe (Bank, State, PortCapability)
+_MT3 n m = do
     bank  <- pc_nRW n
-    state <- pc_nRmW (2*n) (ceil2 n)
-    algo  <- pc_nRmW n n
+    state <- pc_nRmW (n+m) m
+    algo  <- pc_nRmW n m
     return (bank, state, algo)
 
 data A_MT = A_MT PortCapability Lvl Bank State deriving (Eq, Typeable)
@@ -65,4 +64,4 @@ _MT_Alg
     = map (\f -> f _to_A_MT)
         [alg_fn1 _MT1,
          alg_fn2 _MT2,
-         alg_fn1 _MT3]
+         alg_fn2 _MT3]
