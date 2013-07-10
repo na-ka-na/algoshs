@@ -6,6 +6,7 @@ import AlgoUtils
 import Constants
 import Data.Typeable
 import PortCapability
+import Text.StringTemplate (getStringTemplate, render, setManyAttrib)
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -27,6 +28,13 @@ instance AlgoLike A_REP where
     getPortCap (A_REP pc _ _ _) = pc
     getDeps _ = []
     getLvl (A_REP _ lvl _ _) = lvl
+    emitAlgoTxt (A_REP algo _ bank1 bank2) idSuffix templates
+        = let Just t = getStringTemplate "REP" templates
+              attrs = [("idSuffix", idSuffix),
+                       ("algo", show algo),
+                       ("bank1", show bank1),
+                       ("bank2", show bank2)]
+          in render $ setManyAttrib attrs t
 
 _to_A_REP :: AlgoRegistry -> (Bank1, Bank2, PortCapability) -> [Algo]
 _to_A_REP ar (bank1, bank2, algo) = do

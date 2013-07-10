@@ -11,6 +11,7 @@ import Data.Time.Clock (getCurrentTime, diffUTCTime)
 import Data.Typeable
 import PortCapability
 import System.IO (hPrint, stderr)
+import Text.StringTemplate (STGroup)
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -20,6 +21,7 @@ class (Eq a, Typeable a) => AlgoLike a where
     getPortCap :: a -> PortCapability
     getDeps :: a -> [PortCapability]
     getLvl :: a -> Int
+    emitAlgoTxt :: a -> String -> STGroup String -> String
 
 data Algo = forall a . (AlgoLike a) => MkAlgo a deriving (Typeable)
 
@@ -31,6 +33,7 @@ instance AlgoLike Algo where
     getPortCap (MkAlgo a) = getPortCap a
     getDeps (MkAlgo a) = getDeps a
     getLvl (MkAlgo a) = getLvl a
+    emitAlgoTxt (MkAlgo a) = emitAlgoTxt a
 
 instance Show Algo where
     show a = show (getPortCap a)
@@ -58,8 +61,8 @@ timeIt io = do
     hPrint stderr $ diffUTCTime t2 t1
     return a
 
-ceil2 :: Int -> Int
-ceil2 n = n `div` 2 + n `rem` 2
+ceil :: Int -> Int -> Int
+ceil n m = n `div` m + (if (n `rem` m) == 0 then 0 else 1)
 
 when :: (MonadPlus m) => Bool -> m a -> m a
 when p v = if p then v else mzero

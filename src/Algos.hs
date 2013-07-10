@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Algos where
 
+import A_BASE
 import A_MT
 import A_REP
 import A_RL
@@ -15,7 +16,6 @@ import Control.Parallel.Strategies (using, rdeepseq, rpar, evalList, dot)
 import Data.List (sort)
 import Data.Maybe (fromJust)
 --import Debug.Trace (trace)
-import Data.Typeable
 import PortCapability
 import System.Environment
 --import System.IO.Unsafe (unsafePerformIO)
@@ -25,15 +25,8 @@ import System.Environment
 _basePcs :: [PortCapability]
 _basePcs = map fromJust [pc_nRW 1, pc_nRmW 1 1, pc_nRW 2, pc_nRmW 2 2]
 
-data A_BASE = A_BASE PortCapability deriving (Eq, Typeable)
-instance AlgoLike A_BASE where
-    getName _ = _BASE_name
-    getPortCap (A_BASE pc) = pc
-    getDeps _ = []
-    getLvl _ = 0
-
 _baseAlgs :: [Algo]
-_baseAlgs = map (toAlgo . A_BASE) _basePcs
+_baseAlgs = map getBaseAlgo _basePcs
 
 _baseReg :: AlgoRegistry
 _baseReg = foldr addAlgToReg emptyReg _baseAlgs
@@ -61,5 +54,4 @@ main :: IO()
 main = do
     args <- getArgs
     _printAlgs (read $ head args)
-
 

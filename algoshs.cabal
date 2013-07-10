@@ -16,6 +16,7 @@ executable algoshs
                    parallel,
                    random,
                    array,
-                   time
+                   time,
+                   HStringTemplate
   ghc-options:     -Wall
 
