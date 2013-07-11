@@ -52,6 +52,14 @@ instance AlgoLike A_MT where
     getPortCap (A_MT pc _ _ _ _) = pc
     getDeps (A_MT _ _ bank state _) = [bank, state]
     getLvl (A_MT _ lvl _ _ _) = lvl
+    algCovers
+        (A_MT pc lvl bank state numSpares)
+        (A_MT pc' lvl' bank' state' numSpares')
+            =    (pc == pc')
+              && (lvl <= lvl')
+              && (bank' `covers` bank)
+              && (state' `covers` state)
+              && (numSpares <= numSpares')
     emitAlgoTxt (A_MT algo _ bank state numSpares) idSuffix templates
         = let Just t = getStringTemplate "MT" templates
               attrs = [("idSuffix", idSuffix),

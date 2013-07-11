@@ -21,6 +21,13 @@ class (Eq a, Typeable a) => AlgoLike a where
     getPortCap :: a -> PortCapability
     getDeps :: a -> [PortCapability]
     getLvl :: a -> Int
+    -- in general
+    -- a `algCovers` a'
+    -- <=>    portCap a == portCap a'
+    --     && lvl a <= lvl a'
+    --     && deps a <= deps a'
+    -- i.e. a' is not needed if a is present
+    algCovers :: a -> a -> Bool
     emitAlgoTxt :: a -> String -> STGroup String -> String
 
 data Algo = forall a . (AlgoLike a) => MkAlgo a deriving (Typeable)
@@ -33,6 +40,10 @@ instance AlgoLike Algo where
     getPortCap (MkAlgo a) = getPortCap a
     getDeps (MkAlgo a) = getDeps a
     getLvl (MkAlgo a) = getLvl a
+    algCovers (MkAlgo a) (MkAlgo a')
+        = case cast a' of
+            Just a'' -> algCovers a a''
+            Nothing -> False
     emitAlgoTxt (MkAlgo a) = emitAlgoTxt a
 
 instance Show Algo where

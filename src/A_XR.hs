@@ -56,6 +56,12 @@ instance AlgoLike A_XR where
     getPortCap (A_XR pc _ _) = pc
     getDeps (A_XR _ _ bank) = [bank]
     getLvl (A_XR _ lvl _) = lvl
+    algCovers
+        (A_XR pc lvl bank)
+        (A_XR pc' lvl' bank')
+            =    (pc == pc')
+              && (lvl <= lvl')
+              && (bank' `covers` bank)
     emitAlgoTxt (A_XR algo _ bank) idSuffix templates
         = let Just t = getStringTemplate "XR" templates
               attrs = [("idSuffix", idSuffix),

@@ -18,6 +18,7 @@ instance AlgoLike A_BASE where
     getPortCap (A_BASE pc) = pc
     getDeps _ = []
     getLvl _ = 0
+    algCovers (A_BASE pc) (A_BASE pc') = pc == pc'
     emitAlgoTxt (A_BASE bank) idSuffix templates
         = let Just t = getStringTemplate "BASE" templates
               attrs = [("idSuffix", idSuffix),

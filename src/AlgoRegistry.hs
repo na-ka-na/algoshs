@@ -31,21 +31,11 @@ addAlgToReg :: Algo -> AlgoRegistry -> AlgoRegistry
 addAlgToReg alg (Registry hm)
     = let pc = getPortCap alg
           existingAlgs = HM.lookupDefault [] pc hm
-          newAlgs = _fitMin (flip _algCovers) alg existingAlgs
+          newAlgs = _fitMin (flip algCovers) alg existingAlgs
       in Registry $ HM.insert pc newAlgs hm
 
 getAlgos :: AlgoRegistry -> [Algo]
 getAlgos (Registry hm) = concat $ HM.elems hm
-
--- assuming both algos have same portcap
-_algCovers :: Algo -> Algo -> Bool
-alg1 `_algCovers` alg2
-    | (name1 == name2) && (lvl1 <= lvl2)
-        = and $ zipWith covers deps2 deps1
-    | otherwise = False
-    where [name1, name2] = map getName [alg1, alg2]
-          [lvl1, lvl2] = map getLvl [alg1, alg2]
-          [deps1, deps2] = map getDeps [alg1, alg2]
 
 _fitMin :: (a -> a -> Bool) -> a -> [a] -> [a]
 _fitMin grtEq p ps = _fitMin' p ps []

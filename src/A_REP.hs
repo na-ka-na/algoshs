@@ -28,6 +28,13 @@ instance AlgoLike A_REP where
     getPortCap (A_REP pc _ _ _) = pc
     getDeps _ = []
     getLvl (A_REP _ lvl _ _) = lvl
+    algCovers
+        (A_REP pc lvl bank1 bank2)
+        (A_REP pc' lvl' bank1' bank2')
+            =    (pc == pc')
+              && (lvl <= lvl')
+              && (bank1' `covers` bank1)
+              && (bank2' `covers` bank2)
     emitAlgoTxt (A_REP algo _ bank1 bank2) idSuffix templates
         = let Just t = getStringTemplate "REP" templates
               attrs = [("idSuffix", idSuffix),
