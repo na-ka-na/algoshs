@@ -18,7 +18,8 @@ instance AlgoLike A_BASE where
     getPortCap (A_BASE pc) = pc
     getDeps _ = []
     getLvl _ = 0
-    emitAlgoTxt (A_BASE bank) _ templates
-        = let Just t = getStringTemplate "REP" templates
-              attrs = [("bank", show bank)]
+    emitAlgoTxt (A_BASE bank) idSuffix templates
+        = let Just t = getStringTemplate "BASE" templates
+              attrs = [("idSuffix", idSuffix),
+                       ("bank", show bank)]
           in render $ setManyAttrib attrs t

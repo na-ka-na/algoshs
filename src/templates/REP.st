@@ -1,4 +1,4 @@
-$algo$_$idSuffix$ (f, w, b) [BASE]
+$algo$_REP_$idSuffix$ (f, w, b) [BASE]
 
 vars:
 formulae:

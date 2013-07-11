@@ -1,10 +1,10 @@
-$algo$_$idSuffix$ (f, w, b) [MT]
+$algo$_MT_$idSuffix$ (f, w, b) [MT]
 
 vars        : n  __ bank_count(1)
-	          ws __ words_array(n,w)
+              ws __ words_array(n,w)
 
 formulae    : p  = MT_BITS(n + $numSpares$ - 1)
-	          w' = ws.max()
+              w' = ws.max()
 
 macros:
 type1(BASE)       : n * MM_$bank$(f, ws, b)

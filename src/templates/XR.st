@@ -1,4 +1,4 @@
-$algo$_$idSuffix$ (f, w, b) [XR]
+$algo$_XR_$idSuffix$ (f, w, b) [XR]
 
 vars        : n  __ bank_count(1)
               ws __ words_array(n,w)
